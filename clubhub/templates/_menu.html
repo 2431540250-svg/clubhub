@@ -1,0 +1,37 @@
+{% set ep = request.endpoint or '' %}
+<a href="{{ url_for('main.dashboard') }}" class="brand d-flex align-items-center mb-4 text-decoration-none">
+  <span class="brand-logo me-2">{% if HAS_LOGO %}<img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">{% else %}<i class="bi bi-airplane-fill"></i>{% endif %}</span>
+  <span><strong>ClubHub</strong><small>{{ CLUB_NAME }}</small><small>{{ SCHOOL_NAME }}</small></span>
+</a>
+<ul class="nav flex-column gap-1">
+  <li><a class="nav-link {{ 'active' if ep == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-1x2"></i>Tổng quan</a></li>
+  <li><a class="nav-link {{ 'active' if ep.startswith('events.') }}" href="{{ url_for('events.list_events') }}"><i class="bi bi-calendar-event"></i>Sự kiện</a></li>
+  <li><a class="nav-link {{ 'active' if ep.startswith('tasks.') }}" href="{{ url_for('tasks.board') }}"><i class="bi bi-kanban"></i>{{ 'Công việc' if can('task.manage') else 'Việc của tôi' }}</a></li>
+  <li><a class="nav-link {{ 'active' if ep.startswith('announcements.') }}" href="{{ url_for('announcements.list_all') }}"><i class="bi bi-megaphone"></i>Thông báo{% if UNREAD %}<span class="unread-badge" title="{{ UNREAD }} thông báo chưa đọc">{{ UNREAD }}</span>{% endif %}</a></li>
+
+  {% if can('member.view') %}
+  <li class="menu-label">Tổ chức</li>
+  <li><a class="nav-link {{ 'active' if ep.startswith('members.') and 'department' not in ep }}" href="{{ url_for('members.list_members') }}"><i class="bi bi-person-badge"></i>Thành viên</a></li>
+  <li><a class="nav-link {{ 'active' if 'department' in ep }}" href="{{ url_for('members.departments') }}"><i class="bi bi-diagram-3"></i>Ban</a></li>
+  {% endif %}
+
+  {% if can('fund.view') or can('report.view') %}
+  <li class="menu-label">Tài chính</li>
+  {% if can('fund.view') %}<li><a class="nav-link {{ 'active' if ep.startswith('finance.') }}" href="{{ url_for('finance.ledger') }}"><i class="bi bi-wallet2"></i>Sổ thu chi</a></li>{% endif %}
+  {% if can('report.view') %}<li><a class="nav-link {{ 'active' if ep.startswith('reports.') }}" href="{{ url_for('reports.monthly') }}"><i class="bi bi-file-earmark-bar-graph"></i>Báo cáo</a></li>{% endif %}
+  {% endif %}
+
+  {% if can('ai.use') %}
+  <li class="menu-label">Trợ lý AI</li>
+  <li><a class="nav-link {{ 'active' if ep in ('ai.hub','ai.review','ai.meeting') }}" href="{{ url_for('ai.hub') }}"><i class="bi bi-stars"></i>Soạn & tóm tắt</a></li>
+  <li><a class="nav-link {{ 'active' if ep == 'ai.assign' }}" href="{{ url_for('ai.assign') }}"><i class="bi bi-person-check"></i>Đề xuất phân công</a></li>
+  <li><a class="nav-link {{ 'active' if ep == 'ai.engagement' }}" href="{{ url_for('ai.engagement') }}"><i class="bi bi-activity"></i>Mức độ tương tác</a></li>
+  {% endif %}
+
+  {% if g.user.role_code == 'admin' %}
+  <li class="menu-label">Hệ thống</li>
+  <li><a class="nav-link {{ 'active' if ep == 'main.permissions' }}" href="{{ url_for('main.permissions') }}"><i class="bi bi-shield-lock"></i>Phân quyền</a></li>
+  <li><a class="nav-link {{ 'active' if ep == 'main.erd' }}" href="{{ url_for('main.erd') }}"><i class="bi bi-bezier2"></i>Sơ đồ ERD</a></li>
+  {% endif %}
+</ul>
+<div class="mt-auto pt-3 small sidebar-foot text-muted"><i class="bi bi-stars"></i> Vai trò: <span class="badge badge-soft">{{ g.user.role_name }}</span></div>

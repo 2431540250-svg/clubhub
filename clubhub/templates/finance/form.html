@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Giao dịch{% endblock %}
+{% block heading %}{{ 'Sửa giao dịch' if t else 'Ghi thu / chi' }}{% endblock %}
+{% block content %}
+{% set f = request.form if request.method == 'POST' else t %}
+{% set cur_type = (f.type if f else request.args.get('type', 'expense')) %}
+<div class="card" style="max-width:720px"><div class="card-body">
+<form method="post" class="row g-3" novalidate>
+  <div class="col-12">
+    <div class="btn-group" role="group">
+      <input type="radio" class="btn-check" name="type" id="tIn" value="income" {{ 'checked' if cur_type == 'income' }}>
+      <label class="btn btn-outline-success" for="tIn"><i class="bi bi-arrow-down-circle"></i> Khoản thu</label>
+      <input type="radio" class="btn-check" name="type" id="tOut" value="expense" {{ 'checked' if cur_type != 'income' }}>
+      <label class="btn btn-outline-danger" for="tOut"><i class="bi bi-arrow-up-circle"></i> Khoản chi</label>
+    </div>
+  </div>
+  <div class="col-md-6"><label class="form-label">Số tiền (VNĐ) *</label><input name="amount" type="number" min="1" step="1000" class="form-control{{ invalid('amount') }}" required value="{{ f.amount if f else '' }}">{{ feedback('amount') }}</div>
+  <div class="col-md-6"><label class="form-label">Ngày *</label><input type="date" name="txn_date" class="form-control" required value="{{ f.txn_date if f else today }}"></div>
+  <div class="col-md-6"><label class="form-label">Danh mục *</label>
+    <select name="category" id="category" class="form-select{{ invalid('category') }}" required data-current="{{ f.category if f else '' }}"></select>{{ feedback('category') }}</div>
+  <div class="col-md-6"><label class="form-label">Gắn với sự kiện</label>
+    <select name="event_id" class="form-select"><option value="">—</option>
+      {% for e in events %}<option value="{{ e.id }}" {{ 'selected' if f and f.event_id|string == e.id|string }}>{{ e.title }}</option>{% endfor %}</select></div>
+  <div class="col-12"><label class="form-label">Diễn giải</label><input name="description" class="form-control" value="{{ (f.description or '') if f else '' }}"></div>
+  <div class="col-12"><button class="btn btn-primary">Lưu</button> <a href="{{ url_for('finance.ledger') }}" class="btn btn-light">Hủy</a></div>
+</form>
+</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const CATS = { income: {{ income_cats|tojson }}, expense: {{ expense_cats|tojson }} };
+const sel = document.getElementById('category');
+function fill() {
+  const type = document.querySelector('input[name=type]:checked').value;
+  const cur = sel.dataset.current;
+  sel.innerHTML = CATS[type].map(c => `<option ${c === cur ? 'selected' : ''}>${c}</option>`).join('');
+}
+document.querySelectorAll('input[name=type]').forEach(r => r.addEventListener('change', fill));
+fill();
+</script>
+{% endblock %}

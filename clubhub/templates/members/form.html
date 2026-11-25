@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% set editing = m and m.id is defined and m.id %}
+{% block title %}{{ 'Sửa' if editing else 'Thêm' }} thành viên{% endblock %}
+{% block heading %}{{ 'Sửa thành viên' if editing else 'Thêm thành viên' }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:900px"><div class="card-body">
+<form method="post" class="row g-3" novalidate>
+  <div class="col-md-4"><label class="form-label">MSSV *</label><input name="student_id" class="form-control{{ invalid("student_id") }}" required value="{{ m.student_id if m else '' }}">{{ feedback("student_id") }}</div>
+  <div class="col-md-8"><label class="form-label">Họ tên *</label><input name="full_name" class="form-control{{ invalid("full_name") }}" required value="{{ m.full_name if m else '' }}">{{ feedback("full_name") }}</div>
+  <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" class="form-control{{ invalid("email") }}" required value="{{ m.email if m else '' }}">{{ feedback("email") }}</div>
+  <div class="col-md-6"><label class="form-label">Điện thoại</label><input name="phone" class="form-control" value="{{ (m.phone or '') if m else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Khoa</label><input name="faculty" class="form-control" value="{{ (m.faculty or '') if m else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Lớp</label><input name="class_name" class="form-control" value="{{ (m.class_name or '') if m else '' }}"></div>
+  <div class="col-md-2"><label class="form-label">Giới tính</label>
+    <select name="gender" class="form-select">{% for x in ['', 'Nam', 'Nữ', 'Khác'] %}<option {{ 'selected' if m and m.gender == x }}>{{ x }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label">Ngày sinh</label><input type="date" name="birthday" class="form-control" value="{{ (m.birthday or '') if m else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Ban</label>
+    <select name="department_id" class="form-select"><option value="">— Chưa phân ban —</option>
+      {% for d in departments %}<option value="{{ d.id }}" {{ 'selected' if m and m.department_id|string == d.id|string }}>{{ d.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label">Vai trò *</label>
+    <select name="role_id" class="form-select{{ invalid('role_id') }}" required>
+      {% for r in roles %}<option value="{{ r.id }}" {{ 'selected' if (m and m.role_id|string == r.id|string) or (not m and r.code == 'member') }}>{{ r.name }}</option>{% endfor %}</select>{{ feedback('role_id') }}</div>
+  <div class="col-md-6"><label class="form-label">{{ 'Đặt lại mật khẩu' if editing else 'Mật khẩu' }}</label>
+    <input type="password" name="password" class="form-control{{ invalid("password") }}" placeholder="{{ 'Để trống nếu không đổi' if editing else 'Để trống = dùng MSSV' }}">{{ feedback("password") }}</div>
+  {% if editing %}
+  <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" name="is_active" id="act" {{ 'checked' if m.is_active }}>
+    <label class="form-check-label" for="act">Đang hoạt động</label></div></div>
+  {% endif %}
+  <div class="col-12"><button class="btn btn-primary">Lưu</button>
+    <a href="{{ url_for('members.list_members') }}" class="btn btn-light">Hủy</a></div>
+</form>
+</div></div>
+{% endblock %}

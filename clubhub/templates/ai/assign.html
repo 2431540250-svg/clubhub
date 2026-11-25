@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}AI đề xuất phân công{% endblock %}
+{% block heading %}<i class="bi bi-stars text-primary"></i> Đề xuất phân công{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card"><div class="card-body">
+      <form method="post" class="row g-2">
+        <div class="col-12"><label class="form-label">Công việc cần giao *</label><input name="title" class="form-control" required value="{{ form.title or '' }}" placeholder="vd: Thiết kế poster sự kiện"></div>
+        <div class="col-12"><label class="form-label">Mô tả</label><textarea name="description" rows="3" class="form-control">{{ form.description or '' }}</textarea></div>
+        {% if g.user.role_code != 'head' %}
+        <div class="col-12"><label class="form-label">Ưu tiên ban</label><select name="department_id" class="form-select"><option value="">Mọi ban</option>
+          {% for d in departments %}<option value="{{ d.id }}" {{ 'selected' if form.department_id == d.id|string }}>{{ d.name }}</option>{% endfor %}</select></div>
+        {% endif %}
+        <div class="col-12"><button class="btn btn-primary w-100"><i class="bi bi-magic"></i> Gợi ý người phù hợp</button></div>
+      </form>
+      <hr><div class="small text-muted"><b>Cách chấm điểm (0–100):</b><br>
+        35% khối lượng việc đang có (càng ít càng tốt) · 25% tỷ lệ hoàn thành việc · 15% tỷ lệ tham gia sự kiện 90 ngày · 25% kinh nghiệm việc tương tự · trừ điểm nếu có việc quá hạn.</div>
+    </div></div>
+  </div>
+  <div class="col-lg-8">
+    {% if cands is not none %}
+      {% if explanation %}<div class="alert alert-primary"><i class="bi bi-lightbulb"></i> {{ explanation }} <span class="badge badge-soft ms-1">{{ provider }}</span></div>{% endif %}
+      <div class="card"><div class="table-responsive"><table class="table table-stack mb-0">
+        <thead><tr><th>#</th><th>Thành viên</th><th>Điểm</th><th>Lý do</th><th></th></tr></thead><tbody>
+        {% for c in cands %}<tr>
+          <td>{{ loop.index }}</td><td><b>{{ c.full_name }}</b><br><small class="text-muted">{{ c.department_name or '' }}</small></td>
+          <td style="min-width:110px"><b>{{ c.score }}</b><div class="score-bar"><div class="bg-{{ 'success' if c.score >= 60 else ('warning' if c.score >= 40 else 'danger') }}" style="width:{{ c.score }}%"></div></div></td>
+          <td class="small">{{ c.reasons|join('; ') }}</td>
+          <td>{% if can('task.manage') %}<a class="btn btn-sm btn-success text-nowrap" href="{{ url_for('tasks.create', title=form.title, description=form.description, assignee_id=c.id) }}">Giao việc</a>{% endif %}</td></tr>
+        {% else %}<tr><td colspan="5" class="text-muted">Không có ứng viên.</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    {% else %}
+      <div class="card"><div class="card-body text-center text-muted py-5"><i class="bi bi-person-check" style="font-size:3rem"></i><p class="mt-2">Nhập công việc để AI gợi ý người phù hợp dựa trên khối lượng việc, lịch sử hoàn thành và mức độ tham gia.</p></div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

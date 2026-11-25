@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Quên mật khẩu{% endblock %}
+{% block public %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 p-3">
+  <div class="card login-card"><div class="card-body">
+    <div class="d-flex align-items-center mb-3">
+      <span class="brand-logo me-3"><i class="bi bi-key-fill"></i></span>
+      <div><h1 class="h4 fw-bold mb-0">Quên mật khẩu</h1><small class="text-muted">{{ SCHOOL_NAME }}</small></div>
+    </div>
+    {% if sent %}
+      <div class="alert alert-success">
+        <b>Đã ghi nhận yêu cầu.</b><br>
+        {% if mail %}Nếu tài khoản tồn tại, link đặt lại mật khẩu đã được gửi tới <b>email</b> của bạn (hạn 60 phút). Kiểm tra cả hộp thư Spam.
+        {% else %}Nếu tài khoản tồn tại, <b>Ban Chủ nhiệm</b> sẽ thấy yêu cầu và gửi link đặt lại mật khẩu cho bạn qua Zalo/Messenger. Bạn có thể nhắn BCN để được xử lý nhanh hơn.{% endif %}
+      </div>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-primary w-100">Về trang đăng nhập</a>
+    {% else %}
+      <p class="text-muted small">Nhập email hoặc MSSV bạn dùng để đăng nhập.
+        {% if mail %}Hệ thống sẽ gửi link đặt lại mật khẩu qua email.{% else %}Yêu cầu sẽ được chuyển tới Ban Chủ nhiệm.{% endif %}</p>
+      <form method="post" novalidate>
+        <div class="mb-3"><label class="form-label">Email hoặc MSSV</label>
+          <input name="login" class="form-control form-control-lg{{ invalid('login') }}" autofocus value="{{ request.form.login }}">{{ feedback('login') }}</div>
+        <button class="btn btn-primary btn-lg w-100"><i class="bi bi-send-fill me-1"></i> Gửi yêu cầu</button>
+      </form>
+      <div class="text-center mt-3"><a href="{{ url_for('auth.login') }}" class="small">← Quay lại đăng nhập</a></div>
+    {% endif %}
+  </div></div>
+</div>
+{% endblock %}

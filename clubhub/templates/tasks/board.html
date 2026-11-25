@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "_macros.html" import priority_badge with context %}
+{% block title %}Công việc{% endblock %}
+{% block heading %}{{ 'Việc của tôi' if scope == 'mine' else 'Bảng công việc' }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  {% if can('task.manage') %}
+  <div class="btn-group">
+    <a href="{{ url_for('tasks.board', scope='all') }}" class="btn btn-{{ 'primary' if scope=='all' else 'outline-primary' }}">{{ 'Ban của tôi' if g.user.role_code=='head' else 'Tất cả' }}</a>
+    <a href="{{ url_for('tasks.board', scope='mine') }}" class="btn btn-{{ 'primary' if scope=='mine' else 'outline-primary' }}">Việc của tôi</a>
+  </div>
+  {% if scope == 'all' and g.user.role_code != 'head' %}
+  <form class="d-flex"><input type="hidden" name="scope" value="all">
+    <select name="department" class="form-select" onchange="this.form.submit()"><option value="">Mọi ban</option>
+      {% for d in departments %}<option value="{{ d.id }}" {{ 'selected' if dept == d.id }}>{{ d.name }}</option>{% endfor %}</select></form>
+  {% endif %}
+  <a href="{{ url_for('tasks.create') }}" class="btn btn-success ms-auto"><i class="bi bi-plus-lg"></i> Giao việc</a>
+  <a href="{{ url_for('ai.assign') }}" class="btn btn-outline-success"><i class="bi bi-stars"></i> AI gợi ý người làm</a>
+  {% endif %}
+</div>
+<form class="row g-2 mb-2" method="get">
+  <input type="hidden" name="scope" value="{{ scope }}">{% if dept %}<input type="hidden" name="department" value="{{ dept }}">{% endif %}
+  <div class="col-md-6"><div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input name="q" value="{{ q }}" class="form-control" placeholder="Tìm theo tên việc, mô tả, người thực hiện..."></div></div>
+  <div class="col-md-3 d-flex align-items-center"><div class="form-check"><input class="form-check-input" type="checkbox" name="overdue" value="1" id="od" {{ 'checked' if overdue }}>
+    <label class="form-check-label" for="od">Chỉ việc quá hạn</label></div></div>
+  <div class="col-md-3 d-flex gap-2"><button class="btn btn-outline-primary flex-grow-1">Lọc</button>
+    {% if q or overdue %}<a href="{{ url_for('tasks.board', scope=scope) }}" class="btn btn-light" title="Xóa bộ lọc">✕</a>{% endif %}</div>
+</form>
+<p class="small text-muted"><i class="bi bi-hand-index"></i> Bấm nút trên thẻ để đổi trạng thái <span class="d-none d-lg-inline">(hoặc kéo thả thẻ giữa các cột)</span>.</p>
+<div class="row g-3">
+  {% for status, items in columns.items() %}
+  <div class="col-lg-4">
+    <div class="kanban-col" data-status="{{ status }}">
+      <div class="d-flex mb-2 fw-semibold"><span>{{ TASK_STATUS[status] }}</span><span class="badge badge-soft ms-auto count">{{ items|length }}</span></div>
+      {% for t in items %}
+      {% set overdue = t.deadline and t.deadline < today and t.status != 'done' %}
+      <div class="card task-card prio-{{ t.priority }} mb-2 {{ 'overdue' if overdue }}" draggable="true" data-id="{{ t.id }}">
+        <div class="card-body p-2">
+          <div class="d-flex"><span class="fw-semibold small">{{ t.title }}</span><span class="ms-auto">{{ priority_badge(t.priority) }}</span></div>
+          {% if t.description %}<div class="small text-muted">{{ t.description[:80] }}</div>{% endif %}
+          <div class="small mt-1 d-flex flex-wrap gap-2 text-muted">
+            <span><i class="bi bi-person"></i> {{ t.assignee_name or 'Chưa giao' }}</span>
+            {% if t.deadline %}<span class="deadline"><i class="bi bi-flag"></i> {{ t.deadline|dt }}{{ ' (quá hạn)' if overdue }}</span>{% endif %}
+            {% if t.department_name %}<span><i class="bi bi-diagram-3"></i> {{ t.department_name }}</span>{% endif %}
+          </div>
+          <div class="d-flex flex-wrap gap-1 mt-2 align-items-center">
+            {% if t.assignee_id == g.user.id or can('task.manage') %}
+            {% set moves = {'todo': [('doing', 'Bắt đầu', 'play-fill'), ('done', 'Xong', 'check2')],
+                            'doing': [('done', 'Xong', 'check2'), ('todo', 'Tạm dừng', 'pause-fill')],
+                            'done': [('doing', 'Mở lại', 'arrow-counterclockwise')]}[t.status] %}
+            <form method="post" action="{{ url_for('tasks.set_status', task_id=t.id) }}" class="d-flex gap-1">
+              <input type="hidden" name="next" value="{{ request.full_path }}">
+              {% for st, label, icon in moves %}
+              <button name="status" value="{{ st }}" class="btn btn-sm {{ 'btn-success' if st == 'done' else 'btn-light' }} py-0 px-2"><i class="bi bi-{{ icon }}"></i> {{ label }}</button>
+              {% endfor %}
+            </form>
+            {% endif %}
+            {% if can('task.manage') %}<a href="{{ url_for('tasks.edit', task_id=t.id) }}" class="btn btn-sm btn-link ms-auto py-0">Sửa</a>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% else %}<div class="text-center text-muted small py-4">Trống</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let dragged = null;
+document.querySelectorAll('.task-card').forEach(c => {
+  c.addEventListener('dragstart', () => { dragged = c; c.style.opacity = .5; });
+  c.addEventListener('dragend', () => { c.style.opacity = 1; });
+});
+document.querySelectorAll('.kanban-col').forEach(col => {
+  col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+  col.addEventListener('drop', async e => {
+    e.preventDefault(); col.classList.remove('drag-over');
+    if (!dragged) return;
+    const from = dragged.closest('.kanban-col');
+    const res = await fetch(`{{ url_for('tasks.board') }}${dragged.dataset.id}/status`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: col.dataset.status }) });
+    if (!res.ok) { alert('Bạn không có quyền đổi trạng thái việc này.'); return; }
+    col.appendChild(dragged);
+    [from, col].forEach(x => x.querySelector('.count').textContent = x.querySelectorAll('.task-card').length);
+  });
+});
+</script>
+{% endblock %}

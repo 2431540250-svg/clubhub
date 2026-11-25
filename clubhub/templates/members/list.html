@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import role_badge with context %}
+{% block title %}Thành viên{% endblock %}
+{% block heading %}Thành viên{% if g.user.role_code == 'head' %} · {{ g.user.department_name }}{% endif %}{% endblock %}
+{% block content %}
+{% if pending_resets %}
+<div class="alert alert-warning d-flex align-items-center"><i class="bi bi-key me-2"></i>
+  Có {{ pending_resets }} yêu cầu đặt lại mật khẩu đang chờ.
+  <a href="{{ url_for('members.password_requests') }}" class="btn btn-sm btn-light ms-auto">Xử lý</a></div>
+{% endif %}
+<div class="card">
+  <div class="card-body">
+    <form class="row g-2 mb-3" method="get">
+      <div class="col-md-4"><input name="q" value="{{ filters.q }}" class="form-control" placeholder="Tìm tên, MSSV, email..."></div>
+      {% if g.user.role_code != 'head' %}
+      <div class="col-md-2"><select name="department" class="form-select"><option value="">Tất cả ban</option>
+        {% for d in departments %}<option value="{{ d.id }}" {{ 'selected' if filters.department == d.id }}>{{ d.name }}</option>{% endfor %}</select></div>
+      {% endif %}
+      <div class="col-md-2"><select name="role" class="form-select"><option value="">Mọi vai trò</option>
+        {% for r in roles %}<option value="{{ r.code }}" {{ 'selected' if filters.role == r.code }}>{{ r.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select name="status" class="form-select">
+        <option value="active" {{ 'selected' if filters.status=='active' }}>Đang hoạt động</option>
+        <option value="inactive" {{ 'selected' if filters.status=='inactive' }}>Đã nghỉ</option>
+        <option value="all" {{ 'selected' if filters.status=='all' }}>Tất cả</option></select></div>
+      <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i> Lọc</button></div>
+    </form>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      {% if can('member.manage') %}<a href="{{ url_for('members.create') }}" class="btn btn-primary"><i class="bi bi-person-plus"></i> Thêm thành viên</a>{% endif %}
+      {% if can('member.import') %}<a href="{{ url_for('members.import_csv') }}" class="btn btn-outline-primary"><i class="bi bi-upload"></i> Import CSV</a>{% endif %}
+      <a href="{{ url_for('members.export_csv') }}" class="btn btn-outline-secondary"><i class="bi bi-download"></i> Xuất CSV</a>
+      <span class="ms-auto align-self-center text-muted">{{ pager.total }} thành viên</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover table-stack">
+        <thead><tr><th>MSSV</th><th>Họ tên</th><th>Email</th><th>Khoa / Lớp</th><th>Ban</th><th>Vai trò</th><th></th></tr></thead>
+        <tbody>
+        {% for m in members %}
+          <tr class="{{ 'text-muted' if not m.is_active }}">
+            <td>{{ m.student_id }}</td>
+            <td><a href="{{ url_for('members.detail', member_id=m.id) }}" class="fw-semibold text-decoration-none">{{ m.full_name }}</a></td>
+            <td>{{ m.email }}</td><td>{{ m.faculty or '' }} {{ ('/ ' ~ m.class_name) if m.class_name }}</td>
+            <td>{{ m.department_name or '—' }}</td><td>{{ role_badge(m.role_code, m.role_name) }}</td>
+            <td class="text-end">{% if can('member.manage') %}<a href="{{ url_for('members.edit', member_id=m.id) }}" class="btn btn-sm btn-light"><i class="bi bi-pencil"></i></a>{% endif %}</td>
+          </tr>
+        {% else %}<tr><td colspan="7" class="text-center text-muted">Không có thành viên.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "_pagination.html" %}
+  </div>
+</div>
+{% endblock %}

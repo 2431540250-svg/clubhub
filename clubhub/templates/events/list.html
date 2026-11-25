@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Sự kiện{% endblock %}
+{% block heading %}Lịch sự kiện{% endblock %}
+{% macro event_card(e, past=False) %}
+<div class="col-md-6 col-xl-4">
+  <div class="card h-100"><div class="card-body d-flex flex-column">
+    <div class="d-flex mb-2">
+      <div class="text-center me-3 px-2 py-1 rounded bg-primary-subtle text-info" style="min-width:56px">
+        <div class="fw-bold fs-4 lh-1">{{ e.start_time[8:10] }}</div><small>Th{{ e.start_time[5:7]|int }}</small></div>
+      <div><a href="{{ url_for('events.detail', event_id=e.id) }}" class="h6 fw-semibold text-decoration-none d-block mb-1">{{ e.title }}</a>
+        <div class="small text-muted"><i class="bi bi-clock"></i> {{ e.start_time[11:] }}–{{ e.end_time[11:] }} · <i class="bi bi-geo-alt"></i> {{ e.location or '—' }}</div></div>
+    </div>
+    <p class="small text-muted flex-grow-1 mb-2">{{ (e.description or '')[:110] }}</p>
+    <div class="d-flex align-items-center small">
+      {% if e.department_name %}<span class="badge badge-soft me-2">{{ e.department_name }}</span>{% endif %}
+      {% if past %}<span class="text-muted">{{ e.att_count }}/{{ e.reg_count }} có mặt</span>
+      {% else %}<span class="text-muted">{{ e.reg_count }}{{ ('/' ~ e.capacity) if e.capacity }} đăng ký</span>{% endif %}
+      {% if e.registered %}<span class="badge text-bg-success ms-auto">Đã đăng ký</span>{% endif %}
+    </div>
+  </div></div>
+</div>
+{% endmacro %}
+{% block content %}
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-5"><div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input name="q" value="{{ q }}" class="form-control" placeholder="Tìm theo tên, địa điểm, mô tả..."></div></div>
+  <div class="col-md-3"><select name="department" class="form-select"><option value="">Mọi ban</option>
+    {% for d in departments %}<option value="{{ d.id }}" {{ 'selected' if dept == d.id }}>{{ d.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-2 d-flex align-items-center"><div class="form-check"><input class="form-check-input" type="checkbox" name="mine" value="1" id="mine" {{ 'checked' if mine }}>
+    <label class="form-check-label" for="mine">Tôi đã đăng ký</label></div></div>
+  <div class="col-md-2 d-flex gap-2"><button class="btn btn-outline-primary flex-grow-1">Lọc</button>
+    {% if q or dept or mine %}<a href="{{ url_for('events.list_events') }}" class="btn btn-light" title="Xóa bộ lọc">✕</a>{% endif %}</div>
+</form>
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <ul class="nav nav-pills" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabList">Danh sách</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabCal" id="calTab">Lịch tháng</button></li>
+  </ul>
+  <div class="ms-auto d-flex gap-2">
+    <a href="{{ url_for('events.stats') }}" class="btn btn-outline-secondary"><i class="bi bi-bar-chart"></i> Thống kê</a>
+    {% if can('event.manage') %}<a href="{{ url_for('events.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tạo sự kiện</a>{% endif %}
+  </div>
+</div>
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="tabList">
+    <h2 class="h6 text-uppercase text-muted">Sắp diễn ra</h2>
+    <div class="row g-3 mb-4">{% for e in upcoming %}{{ event_card(e) }}{% else %}<p class="text-muted">{{ 'Không tìm thấy sự kiện phù hợp.' if q or dept or mine else 'Chưa có sự kiện sắp tới.' }}</p>{% endfor %}</div>
+    <h2 class="h6 text-uppercase text-muted">Đã diễn ra</h2>
+    <div class="row g-3">{% for e in past %}{{ event_card(e, True) }}{% else %}<p class="text-muted">Chưa có.</p>{% endfor %}</div>
+  </div>
+  <div class="tab-pane fade" id="tabCal"><div class="card"><div class="card-body"><div id="calendar"></div></div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+let cal;
+document.getElementById('calTab').addEventListener('shown.bs.tab', () => {
+  if (cal) return cal.updateSize();
+  cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth', locale: 'vi', firstDay: 1, height: 'auto',
+    buttonText: { today: 'Hôm nay', month: 'Tháng', week: 'Tuần', list: 'Danh sách' },
+    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listMonth' },
+    events: '{{ url_for("events.calendar_json") }}'
+  });
+  cal.render();
+});
+</script>
+{% endblock %}

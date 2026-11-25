@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import role_badge, status_badge, delete_btn with context %}
+{% block title %}{{ m.full_name }}{% endblock %}
+{% block heading %}Hồ sơ thành viên{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card"><div class="card-body">
+      <div class="text-center mb-3">
+        <span class="avatar mb-2" style="width:72px;height:72px;font-size:1.8rem">{{ m.full_name.split()[-1][0] }}</span>
+        <h2 class="h5 mb-1">{{ m.full_name }}</h2>
+        {{ role_badge(m.role_code, m.role_name) }} {% if not m.is_active %}<span class="badge text-bg-secondary">Đã nghỉ</span>{% endif %}
+      </div>
+      <dl class="row small mb-0">
+        <dt class="col-5">MSSV</dt><dd class="col-7">{{ m.student_id }}</dd>
+        <dt class="col-5">Email</dt><dd class="col-7">{{ m.email }}</dd>
+        <dt class="col-5">Điện thoại</dt><dd class="col-7">{{ m.phone or '—' }}</dd>
+        <dt class="col-5">Khoa / Lớp</dt><dd class="col-7">{{ m.faculty or '—' }} / {{ m.class_name or '—' }}</dd>
+        <dt class="col-5">Ban</dt><dd class="col-7">{{ m.department_name or 'Chưa phân ban' }}</dd>
+        <dt class="col-5">Ngày tham gia</dt><dd class="col-7">{{ m.joined_at|dt }}</dd>
+        <dt class="col-5">Đăng nhập gần nhất</dt><dd class="col-7">{{ m.last_login|dt or '—' }}</dd>
+      </dl>
+      {% if can('member.manage') %}
+      <div class="d-flex gap-2 mt-3">
+        <a href="{{ url_for('members.edit', member_id=m.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> Sửa / gán ban, vai trò</a>
+        {{ delete_btn(url_for('members.delete', member_id=m.id), confirm='Xóa vĩnh viễn thành viên này?') }}
+      </div>
+      <form method="post" action="{{ url_for('members.reset_link', member_id=m.id) }}" class="mt-2">
+        <button class="btn btn-sm btn-outline-secondary w-100"><i class="bi bi-key"></i> Tạo link đặt lại mật khẩu</button></form>{% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card mb-3"><div class="card-header">Lịch sử sự kiện ({{ events|selectattr('checked_in_at')|list|length }}/{{ events|length }} có mặt)</div>
+      <div class="table-responsive"><table class="table table-stack mb-0"><thead><tr><th>Sự kiện</th><th>Thời gian</th><th>Điểm danh</th></tr></thead><tbody>
+        {% for e in events %}<tr><td>{{ e.title }}</td><td>{{ e.start_time|dt }}</td>
+          <td>{% if e.checked_in_at %}<span class="badge text-bg-success">Có mặt {{ e.checked_in_at[11:] }}</span>{% else %}<span class="badge badge-soft">Chưa / vắng</span>{% endif %}</td></tr>
+        {% else %}<tr><td colspan="3" class="text-muted">Chưa đăng ký sự kiện nào.</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    <div class="card"><div class="card-header">Công việc được giao</div>
+      <div class="table-responsive"><table class="table table-stack mb-0"><thead><tr><th>Công việc</th><th>Hạn</th><th>Trạng thái</th></tr></thead><tbody>
+        {% for t in tasks %}<tr><td>{{ t.title }}</td><td>{{ t.deadline|dt }}</td><td>{{ status_badge(t.status) }}</td></tr>
+        {% else %}<tr><td colspan="3" class="text-muted">Chưa có công việc.</td></tr>{% endfor %}
+      </tbody></table></div></div>
+  </div>
+</div>
+{% endblock %}

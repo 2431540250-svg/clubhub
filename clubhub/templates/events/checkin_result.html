@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Check-in{% endblock %}
+{% block heading %}Check-in sự kiện{% endblock %}
+{% block content %}
+<div class="card mx-auto text-center" style="max-width:480px"><div class="card-body p-5">
+  {% if status == 'ok' %}<i class="bi bi-check-circle-fill text-success" style="font-size:4rem"></i>
+  {% elif status == 'already' %}<i class="bi bi-info-circle-fill text-warning" style="font-size:4rem"></i>
+  {% else %}<i class="bi bi-x-circle-fill text-danger" style="font-size:4rem"></i>{% endif %}
+  <h2 class="h4 mt-3">{{ message }}</h2>
+  <p class="text-muted">{{ e.title }}<br>{{ g.user.full_name }} · {{ g.user.student_id }}</p>
+  {% if status == 'error' %}
+  <p class="small text-muted">Bạn có thể nhờ Ban tổ chức bấm "Mở ngay" ở trang sự kiện{% if my_reg %}, hoặc đưa <b>vé QR cá nhân</b> bên dưới để BTC quét{% endif %}.</p>
+  {% if my_reg %}<div class="qr-box mb-3"><div id="ticketQR"></div></div><div class="font-monospace mb-3">{{ my_reg.ticket_code }}</div>{% endif %}
+  {% endif %}
+  <a href="{{ url_for('events.detail', event_id=e.id) }}" class="btn btn-primary">Xem sự kiện</a>
+</div></div>
+{% endblock %}
+{% block scripts %}
+{% if status == 'error' and my_reg %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>new QRCode(document.getElementById('ticketQR'), { text: {{ (ticket_prefix ~ my_reg.ticket_code)|tojson }}, width: 180, height: 180 });</script>
+{% endif %}
+{% endblock %}

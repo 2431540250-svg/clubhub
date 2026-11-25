@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Duyệt bản nháp AI{% endblock %}
+{% block heading %}Duyệt bản nháp AI · {{ KIND_LABEL[d.kind] }}{% endblock %}
+{% block content %}
+<div class="mb-3 small">
+  <span class="badge text-bg-primary">1. AI soạn nháp</span> <i class="bi bi-arrow-right"></i>
+  <span class="badge {{ 'text-bg-primary' if d.status == 'draft' else 'badge-soft' }}">2. Người dùng chỉnh sửa</span> <i class="bi bi-arrow-right"></i>
+  <span class="badge {{ 'text-bg-success' if d.status == 'approved' else ('text-bg-secondary' if d.status == 'rejected' else 'badge-soft') }}">3. Chủ nhiệm duyệt → công bố</span>
+</div>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <form method="post" class="card"><div class="card-body">
+      <div class="d-flex mb-2 small text-muted">Tạo bởi {{ d.creator }} · {{ d.created_at|dt }} · nguồn: <span class="badge badge-soft ms-1">{{ d.provider }}</span>
+        <span class="ms-auto">{% if d.status == 'draft' %}<span class="badge text-bg-warning">Chờ duyệt</span>{% elif d.status == 'approved' %}<span class="badge text-bg-success">Đã duyệt</span>{% else %}<span class="badge text-bg-secondary">Đã từ chối</span>{% endif %}</span></div>
+      <label class="form-label">Tiêu đề</label>
+      <input name="title" class="form-control mb-2" value="{{ d.title }}" {{ 'readonly' if d.status != 'draft' }}>
+      <label class="form-label">Nội dung AI đề xuất (có thể chỉnh sửa)</label>
+      <textarea name="output_text" rows="16" class="form-control ai-output" {{ 'readonly' if d.status != 'draft' }}>{{ d.output_text }}</textarea>
+      {% if d.status == 'draft' %}
+      <div class="row g-2 mt-2">
+        {% if d.kind == 'announcement' %}
+        <div class="col-md-6"><label class="form-label small">Đăng tới</label><select name="department_id" class="form-select">
+          <option value="">Toàn CLB</option>{% for dep in departments %}<option value="{{ dep.id }}">{{ dep.name }}</option>{% endfor %}</select></div>
+        {% else %}
+        <div class="col-md-6"><label class="form-label small">Ngày họp</label><input type="date" name="meeting_date" class="form-control" value="{{ today }}"></div>
+        {% endif %}
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button name="action" value="save" class="btn btn-outline-primary"><i class="bi bi-save"></i> Lưu chỉnh sửa</button>
+        {% if can('ai.approve') %}
+        <button name="action" value="approve" class="btn btn-success"><i class="bi bi-check2-circle"></i> Duyệt & {{ 'đăng thông báo' if d.kind == 'announcement' else 'lưu biên bản' }}</button>
+        <button name="action" value="reject" class="btn btn-outline-danger" onclick="return confirm('Từ chối bản nháp?')"><i class="bi bi-x-circle"></i> Từ chối</button>
+        {% else %}<span class="small text-muted align-self-center">Chỉ Chủ nhiệm/Admin mới duyệt được.</span>{% endif %}
+      </div>
+      {% endif %}
+    </div></form>
+  </div>
+  <div class="col-lg-4">
+    <div class="card"><div class="card-header">Dữ liệu đầu vào</div><div class="card-body small pre-line" style="max-height:480px;overflow:auto">{{ d.input_text }}</div></div>
+    <a href="{{ url_for('ai.hub') }}" class="btn btn-light mt-3"><i class="bi bi-arrow-left"></i> Trợ lý AI</a>
+  </div>
+</div>
+{% endblock %}

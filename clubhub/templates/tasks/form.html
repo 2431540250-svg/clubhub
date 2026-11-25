@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_btn with context %}
+{% block title %}Công việc{% endblock %}
+{% block heading %}{{ 'Sửa công việc' if t.id is defined and t.id else 'Giao việc mới' }}{% endblock %}
+{% block content %}
+{% set f = request.form if request.method == 'POST' else t %}
+<div class="card" style="max-width:820px"><div class="card-body">
+<form method="post" class="row g-3" novalidate>
+  <div class="col-12"><label class="form-label">Tiêu đề *</label><input name="title" class="form-control{{ invalid("title") }}" required value="{{ f.title or '' }}">{{ feedback("title") }}</div>
+  <div class="col-12"><label class="form-label">Mô tả</label><textarea name="description" rows="3" class="form-control">{{ f.description or '' }}</textarea></div>
+  <div class="col-md-6"><label class="form-label">Người thực hiện</label>
+    <select name="assignee_id" class="form-select{{ invalid('assignee_id') }}"><option value="">— Chưa giao —</option>
+      {% for m in members %}<option value="{{ m.id }}" {{ 'selected' if f.assignee_id|string == m.id|string }}>{{ m.full_name }} ({{ m.student_id }})</option>{% endfor %}</select>{{ feedback('assignee_id') }}</div>
+  <div class="col-md-6"><label class="form-label">Ban</label>
+    <select name="department_id" class="form-select" {{ 'disabled' if g.user.role_code == 'head' }}><option value="">Theo ban của người thực hiện</option>
+      {% for d in departments %}<option value="{{ d.id }}" {{ 'selected' if f.department_id|string == d.id|string or (g.user.role_code == 'head' and g.user.department_id == d.id) }}>{{ d.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-4"><label class="form-label">Hạn chót</label><input type="date" name="deadline" class="form-control" value="{{ f.deadline or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Ưu tiên</label>
+    <select name="priority" class="form-select">{% for k, v in TASK_PRIORITY.items() %}<option value="{{ k }}" {{ 'selected' if f.priority == k }}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-md-4"><label class="form-label">Trạng thái</label>
+    <select name="status" class="form-select">{% for k, v in TASK_STATUS.items() %}<option value="{{ k }}" {{ 'selected' if f.status == k }}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label">Phục vụ sự kiện</label>
+    <select name="event_id" class="form-select"><option value="">—</option>
+      {% for e in events %}<option value="{{ e.id }}" {{ 'selected' if f.event_id|string == e.id|string }}>{{ e.title }}</option>{% endfor %}</select></div>
+  <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Lưu</button>
+    <a href="{{ url_for('tasks.board') }}" class="btn btn-light">Hủy</a></div>
+</form>
+{% if t.id is defined and t.id %}<div class="mt-3">{{ delete_btn(url_for('tasks.delete', task_id=t.id), label='Xóa công việc') }}</div>{% endif %}
+</div></div>
+{% endblock %}

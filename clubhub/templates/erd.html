@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}ERD{% endblock %}
+{% block heading %}Sơ đồ thực thể – liên kết (ERD){% endblock %}
+{% block content %}
+<div class="card"><div class="card-body">
+<pre class="mermaid">
+erDiagram
+  ROLES ||--o{ MEMBERS : "có"
+  DEPARTMENTS ||--o{ MEMBERS : "gồm"
+  MEMBERS ||--o{ REGISTRATIONS : "đăng ký"
+  EVENTS ||--o{ REGISTRATIONS : "có"
+  DEPARTMENTS ||--o{ EVENTS : "phụ trách"
+  EVENTS |o--o{ FUNDS : "gắn với"
+  MEMBERS ||--o{ FUNDS : "ghi"
+  MEMBERS ||--o{ TASKS : "được giao"
+  DEPARTMENTS ||--o{ TASKS : "thuộc"
+  EVENTS |o--o{ TASKS : "phục vụ"
+  DEPARTMENTS |o--o{ ANNOUNCEMENTS : "nhận"
+  MEMBERS ||--o{ ANNOUNCEMENTS : "đăng"
+  MEMBERS ||--o{ AI_DRAFTS : "tạo/duyệt"
+  MEMBERS ||--o{ MEETINGS : "lập"
+
+  ROLES {
+    int id PK
+    string code UK
+    string name
+  }
+  DEPARTMENTS {
+    int id PK
+    string name UK
+    string description
+  }
+  MEMBERS {
+    int id PK
+    string student_id UK
+    string full_name
+    string email UK
+    string password_hash
+    int role_id FK
+    int department_id FK
+    bool is_active
+  }
+  EVENTS {
+    int id PK
+    string title
+    datetime start_time
+    datetime end_time
+    int capacity
+    string checkin_token UK
+    bool checkin_open
+    int department_id FK
+  }
+  REGISTRATIONS {
+    int id PK
+    int event_id FK
+    int member_id FK
+    string ticket_code UK
+    datetime checked_in_at
+    string checkin_method
+  }
+  FUNDS {
+    int id PK
+    string type
+    int amount
+    string category
+    date txn_date
+    int event_id FK
+    int created_by FK
+  }
+  TASKS {
+    int id PK
+    string title
+    int assignee_id FK
+    int assigner_id FK
+    int department_id FK
+    string status
+    string priority
+    date deadline
+  }
+  ANNOUNCEMENTS {
+    int id PK
+    string title
+    text content
+    int department_id FK
+    bool is_ai_generated
+  }
+  MEETINGS {
+    int id PK
+    string title
+    text raw_notes
+    text summary
+  }
+  AI_DRAFTS {
+    int id PK
+    string kind
+    text output_text
+    string status
+    int created_by FK
+    int reviewed_by FK
+  }
+</pre>
+</div></div>
+{% endblock %}
+{% block scripts %}
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { primaryColor: '#1e1b4b', primaryBorderColor: '#818cf8', lineColor: '#67e8f9', primaryTextColor: '#e6e9ff' } });
+</script>
+{% endblock %}

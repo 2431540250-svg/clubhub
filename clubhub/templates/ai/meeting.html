@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ m.title }}{% endblock %}
+{% block heading %}Biên bản họp{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body">
+  <h2 class="h5 fw-bold mb-0">{{ m.title }}</h2><div class="text-muted small mb-3">Ngày họp: {{ m.meeting_date|dt }}</div>
+  <div class="row g-3">
+    <div class="col-lg-6"><h3 class="h6 text-primary"><i class="bi bi-stars"></i> Tóm tắt (đã duyệt)</h3><div class="ai-output border rounded p-3 glass-inset">{{ m.summary }}</div></div>
+    <div class="col-lg-6"><h3 class="h6">Ghi chép gốc</h3><div class="pre-line border rounded p-3 small">{{ m.raw_notes }}</div></div>
+  </div>
+</div></div>
+<a href="{{ url_for('ai.hub') }}" class="btn btn-light"><i class="bi bi-arrow-left"></i> Quay lại</a>
+{% endblock %}

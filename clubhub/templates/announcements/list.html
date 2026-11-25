@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_btn with context %}
+{% block title %}Thông báo{% endblock %}
+{% block heading %}Thông báo{% endblock %}
+{% block content %}
+<div class="d-flex mb-3 gap-2">
+  {% if can('announcement.manage') %}<a href="{{ url_for('announcements.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Đăng thông báo</a>{% endif %}
+  {% if can('ai.use') %}<a href="{{ url_for('ai.hub') }}#announcement" class="btn btn-outline-primary"><i class="bi bi-stars"></i> Nhờ AI soạn</a>{% endif %}
+</div>
+<div class="row g-3">
+  {% for a in rows %}
+  <div class="col-lg-6">
+    <div class="card h-100 {{ 'is-new' if a.id in new_ids }}"><div class="card-body">
+      <div class="d-flex align-items-start gap-2 mb-1">
+        {% if a.is_pinned %}<i class="bi bi-pin-angle-fill text-danger"></i>{% endif %}
+        <h2 class="h6 fw-bold mb-0">{{ a.title }}</h2>{% if a.id in new_ids %}<span class="new-ribbon">MỚI</span>{% endif %}
+        <div class="ms-auto d-flex gap-1">
+          {% if a.is_ai_generated %}<span class="badge text-bg-info" title="Soạn bởi AI, đã được duyệt"><i class="bi bi-stars"></i> AI</span>{% endif %}
+          <span class="badge badge-soft">{{ a.department_name or 'Toàn CLB' }}</span>
+        </div>
+      </div>
+      <div class="small text-muted mb-2">{{ a.author or '—' }} · {{ a.created_at|dt }}</div>
+      <div class="pre-line">{{ a.content }}</div>
+      {% if can('announcement.manage') and (g.user.role_code != 'head' or a.author_id == g.user.id) %}
+      <div class="mt-2 d-flex gap-2"><a href="{{ url_for('announcements.edit', ann_id=a.id) }}" class="btn btn-sm btn-light"><i class="bi bi-pencil"></i> Sửa</a>
+        {{ delete_btn(url_for('announcements.delete', ann_id=a.id)) }}</div>{% endif %}
+    </div></div>
+  </div>
+  {% else %}<p class="text-muted">Chưa có thông báo.</p>{% endfor %}
+</div>
+{% endblock %}

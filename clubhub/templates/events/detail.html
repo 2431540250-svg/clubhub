@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_btn with context %}
+{% block title %}{{ e.title }}{% endblock %}
+{% block heading %}Chi tiết sự kiện{% endblock %}
+{% block content %}
+{% set ended = e.end_time < now %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-body">
+      <div class="d-flex flex-wrap align-items-start gap-2">
+        <h2 class="h4 fw-bold mb-1">{{ e.title }}</h2>
+        {% if ended %}<span class="badge text-bg-secondary">Đã kết thúc</span>
+        {% elif e.start_time <= now %}<span class="badge text-bg-success">Đang diễn ra</span>
+        {% else %}<span class="badge text-bg-primary">Sắp diễn ra</span>{% endif %}
+      </div>
+      <div class="text-muted mb-3"><i class="bi bi-clock"></i> {{ e.start_time|dt }} → {{ e.end_time|dt }}
+        · <i class="bi bi-geo-alt"></i> {{ e.location or '—' }} {% if e.department_name %}· <i class="bi bi-diagram-3"></i> {{ e.department_name }}{% endif %}</div>
+      <p class="pre-line">{{ e.description or '' }}</p>
+      {% if manage and not checkin_is_open and not ended and e.checkin_open == 2 %}
+      <div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> Tự check-in đang <b>đóng thủ công</b>. Nhớ chuyển về "Theo giờ" hoặc "Mở ngay" trước khi sự kiện bắt đầu.</div>
+      {% endif %}
+      <div class="row text-center g-2 mb-3">
+        <div class="col"><div class="border rounded p-2"><div class="fs-4 fw-bold">{{ e.reg_count }}{{ ('/' ~ e.capacity) if e.capacity }}</div><small class="text-muted">Đăng ký</small></div></div>
+        <div class="col"><div class="border rounded p-2"><div class="fs-4 fw-bold text-success">{{ e.att_count }}</div><small class="text-muted">Đã check-in</small></div></div>
+        <div class="col"><div class="border rounded p-2"><div class="fs-4 fw-bold text-primary">{{ (e.att_count * 100 / e.reg_count)|round|int if e.reg_count else 0 }}%</div><small class="text-muted">Tỷ lệ có mặt</small></div></div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% if not my_reg and not ended %}
+          <form method="post" action="{{ url_for('events.register', event_id=e.id) }}"><button class="btn btn-primary"><i class="bi bi-check2-circle"></i> Đăng ký tham gia</button></form>
+        {% elif my_reg and not my_reg.checked_in_at and not ended %}
+          <form method="post" action="{{ url_for('events.unregister', event_id=e.id) }}" data-confirm="Hủy đăng ký?"><button class="btn btn-outline-danger">Hủy đăng ký</button></form>
+        {% endif %}
+        {% if manage %}
+          <a href="{{ url_for('events.edit', event_id=e.id) }}" class="btn btn-light"><i class="bi bi-pencil"></i> Sửa</a>
+          {{ delete_btn(url_for('events.delete', event_id=e.id), confirm='Xóa sự kiện và toàn bộ đăng ký?', cls='btn-outline-danger') }}
+        {% endif %}
+      </div>
+    </div></div>
+
+    {% if regs %}
+    <div class="card"><div class="card-header d-flex align-items-center">Danh sách đăng ký & điểm danh
+      <a href="{{ url_for('events.export_attendance', event_id=e.id) }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-download"></i> CSV</a></div>
+      <div class="table-responsive" style="max-height:420px"><table class="table table-stack table-sm mb-0">
+        <thead><tr><th>MSSV</th><th>Họ tên</th><th>Ban</th><th>Check-in</th></tr></thead><tbody>
+        {% for r in regs %}<tr><td>{{ r.student_id }}</td><td>{{ r.full_name }}</td><td class="small">{{ r.department_name or '' }}</td>
+          <td>{% if r.checked_in_at %}<span class="badge text-bg-success">{{ r.checked_in_at[11:] }} · {{ {'scan':'quét vé','self':'tự quét','manual':'nhập tay'}.get(r.checkin_method, '') }}</span>
+          {% else %}<span class="text-muted small">Chưa</span>{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-5 order-first order-lg-last">{# trên điện thoại: vé QR & điểm danh hiện trước #}
+    {% if my_reg %}
+    <div class="card mb-3 text-center"><div class="card-header">Vé QR của tôi</div><div class="card-body">
+      {% if my_reg.checked_in_at %}
+        <div class="alert alert-success mb-3"><i class="bi bi-patch-check-fill"></i> Bạn đã check-in lúc {{ my_reg.checked_in_at|dt }}</div>
+      {% endif %}
+      <div class="qr-box"><div id="ticketQR"></div></div>
+      <div class="mt-2 fw-semibold font-monospace">{{ my_reg.ticket_code }}</div>
+      <small class="text-muted">Đưa mã này cho Ban tổ chức quét khi đến sự kiện.</small>
+    </div></div>
+    {% endif %}
+
+    {% if can('event.checkin') or manage %}
+    <div class="card text-center"><div class="card-header">Điểm danh</div><div class="card-body">
+      <a href="{{ url_for('events.scan', event_id=e.id) }}" class="btn btn-success btn-lg w-100 mb-3"><i class="bi bi-qr-code-scan"></i> Mở máy quét vé QR</a>
+      {% if manage %}
+      <hr>
+      <p class="small text-muted mb-2">Hoặc chiếu <b>QR sự kiện</b> lên màn hình để thành viên tự quét bằng điện thoại.</p>
+      <div class="alert {{ 'alert-success' if checkin_is_open else 'alert-warning' }} small py-2 text-start">
+        <i class="bi {{ 'bi-unlock-fill' if checkin_is_open else 'bi-lock-fill' }}"></i>
+        <b>Tự check-in:</b> {{ checkin_label }}
+        {% if not checkin_is_open and not ended %}<br>Thành viên quét QR lúc này sẽ thấy thông báo "chưa mở".{% endif %}
+      </div>
+      <form method="post" action="{{ url_for('events.set_checkin_mode', event_id=e.id) }}" class="btn-group btn-group-sm mb-3 flex-wrap" role="group">
+        <button name="mode" value="0" class="btn {{ 'btn-primary' if e.checkin_open == 0 else 'btn-outline-primary' }}" title="Tự mở 30 phút trước giờ bắt đầu, đóng khi kết thúc">Theo giờ</button>
+        <button name="mode" value="1" class="btn {{ 'btn-primary' if e.checkin_open == 1 else 'btn-outline-primary' }}">Mở ngay</button>
+        <button name="mode" value="2" class="btn {{ 'btn-primary' if e.checkin_open == 2 else 'btn-outline-primary' }}">Đóng</button>
+      </form>
+      <div>
+        <div class="qr-box" style="{{ '' if checkin_is_open else 'opacity:.45' }}"><div id="eventQR"></div></div>
+        <div class="small mt-2 text-break"><a href="{{ self_checkin_url }}">{{ self_checkin_url }}</a></div>
+      </div>
+      {% endif %}
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+{% if my_reg %}new QRCode(document.getElementById('ticketQR'), { text: {{ (ticket_prefix ~ my_reg.ticket_code)|tojson }}, width: 200, height: 200 });{% endif %}
+{% if manage %}new QRCode(document.getElementById('eventQR'), { text: {{ self_checkin_url|tojson }}, width: 240, height: 240 });{% endif %}
+</script>
+{% endblock %}

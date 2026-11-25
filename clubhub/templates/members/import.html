@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Import CSV{% endblock %}
+{% block heading %}Import thành viên từ CSV{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card"><div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        <div class="mb-3"><label class="form-label">File CSV (UTF-8)</label><input type="file" name="file" accept=".csv" class="form-control" required></div>
+        <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="update" id="upd">
+          <label class="form-check-label" for="upd">Cập nhật thông tin nếu MSSV đã tồn tại</label></div>
+        <button class="btn btn-primary"><i class="bi bi-upload"></i> Import</button>
+        <a href="{{ url_for('members.csv_template') }}" class="btn btn-outline-secondary"><i class="bi bi-filetype-csv"></i> Tải file mẫu</a>
+      </form>
+      {% if result %}
+      <hr><h3 class="h6">Kết quả</h3>
+      <p>Thêm mới: <strong>{{ result.created }}</strong> · Cập nhật: <strong>{{ result.updated }}</strong> · Lỗi: <strong>{{ result.errors|length }}</strong></p>
+      {% if result.errors %}<ul class="small text-danger">{% for e in result.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card"><div class="card-header">Định dạng file</div><div class="card-body small">
+      <p>Dòng đầu là tiêu đề cột:</p>
+      <code>{{ fields|join(',') }}</code>
+      <ul class="mt-3">
+        <li><b>student_id, full_name, email</b> bắt buộc.</li>
+        <li><b>department</b>: tên ban; nếu ban chưa có hệ thống sẽ tự tạo.</li>
+        <li><b>role</b>: mã (member, head, treasurer, president) hoặc tên tiếng Việt. Bỏ trống = thành viên.</li>
+        <li>Mật khẩu ban đầu của thành viên mới = MSSV.</li>
+        <li>Mở bằng Excel: Lưu dưới dạng <i>CSV UTF-8</i> để không lỗi dấu.</li>
+      </ul>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

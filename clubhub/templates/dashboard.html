@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stat_card, priority_badge with context %}
+{% block title %}Tổng quan{% endblock %}
+{% block heading %}Tổng quan{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl">{{ stat_card('people', 'Thành viên', stats.members, 'primary', url_for('members.list_members') if can('member.view')) }}</div>
+  <div class="col-6 col-xl">{{ stat_card('diagram-3', 'Ban', stats.departments, 'info') }}</div>
+  <div class="col-6 col-xl">{{ stat_card('calendar-event', 'Sự kiện sắp tới', stats.upcoming, 'success', url_for('events.list_events')) }}</div>
+  <div class="col-6 col-xl">{{ stat_card('list-check', 'Việc của tôi chưa xong', stats.my_tasks, 'warning', url_for('tasks.board', scope='mine')) }}</div>
+  {% if stats.balance is defined %}
+  <div class="col-12 col-xl">{{ stat_card('wallet2', 'Tồn quỹ', stats.balance|money, 'danger', url_for('finance.ledger')) }}</div>
+  {% endif %}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-{{ 7 if chart_fund else 8 }}">
+    <div class="card h-100"><div class="card-header">Tỷ lệ điểm danh các sự kiện gần đây</div>
+      <div class="card-body"><canvas id="attChart" height="120"></canvas></div></div>
+  </div>
+  <div class="col-lg-{{ 5 if chart_fund else 4 }}">
+    {% if chart_fund %}
+    <div class="card h-100"><div class="card-header">Thu chi 6 tháng</div>
+      <div class="card-body"><canvas id="fundChart" height="170"></canvas></div></div>
+    {% else %}
+    <div class="card h-100"><div class="card-header">Thành viên theo ban</div>
+      <div class="card-body"><canvas id="deptChart"></canvas></div></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header d-flex">Sự kiện sắp tới <a class="ms-auto small" href="{{ url_for('events.list_events') }}">Xem tất cả</a></div>
+      <ul class="list-group list-group-flush">
+        {% for e in upcoming %}
+        <li class="list-group-item d-flex align-items-center">
+          <div class="me-3 text-center" style="width:48px"><div class="fw-bold fs-5 text-primary">{{ e.start_time[8:10] }}</div><small class="text-muted">Th{{ e.start_time[5:7]|int }}</small></div>
+          <div class="flex-grow-1"><a href="{{ url_for('events.detail', event_id=e.id) }}" class="fw-semibold text-decoration-none">{{ e.title }}</a>
+            <div class="small text-muted"><i class="bi bi-clock"></i> {{ e.start_time[11:] }} · <i class="bi bi-geo-alt"></i> {{ e.location }} · {{ e.reg_count }} đăng ký</div></div>
+          {% if e.registered %}<span class="badge text-bg-success">Đã đăng ký</span>{% endif %}
+        </li>
+        {% else %}<li class="list-group-item text-muted">Chưa có sự kiện.</li>{% endfor %}
+      </ul></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100"><div class="card-header d-flex">Việc của tôi <a class="ms-auto small" href="{{ url_for('tasks.board', scope='mine') }}">Kanban</a></div>
+      <ul class="list-group list-group-flush">
+        {% for t in my_tasks %}
+        <li class="list-group-item"><div class="d-flex"><span class="fw-semibold">{{ t.title }}</span><span class="ms-auto">{{ priority_badge(t.priority) }}</span></div>
+          <div class="d-flex align-items-center mt-1">
+            <small class="{{ 'text-danger fw-semibold' if t.deadline and t.deadline < today else 'text-muted' }}"><i class="bi bi-flag"></i> Hạn {{ t.deadline|dt }}{{ ' · ' ~ TASK_STATUS[t.status] if t.status == 'doing' }}</small>
+            <form method="post" action="{{ url_for('tasks.set_status', task_id=t.id) }}" class="ms-auto">
+              <input type="hidden" name="next" value="{{ url_for('main.dashboard') }}">
+              <button name="status" value="done" class="btn btn-sm btn-success py-0 px-2"><i class="bi bi-check2"></i> Xong</button></form>
+          </div></li>
+        {% else %}<li class="list-group-item text-muted">Không có việc tồn đọng 🎉</li>{% endfor %}
+      </ul></div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card h-100"><div class="card-header d-flex align-items-center">Thông báo {% if UNREAD %}<span class="new-ribbon ms-2">{{ UNREAD }} mới</span>{% endif %}<a class="ms-auto small" href="{{ url_for('announcements.list_all') }}">Tất cả</a></div>
+      <ul class="list-group list-group-flush">
+        {% for a in news %}
+        <li class="list-group-item">{% if a.is_pinned %}<i class="bi bi-pin-angle-fill text-danger"></i>{% endif %}
+          <span class="fw-semibold">{{ a.title }}</span><div class="small text-muted">{{ a.author }} · {{ a.created_at|dt }}</div></li>
+        {% else %}<li class="list-group-item text-muted">Chưa có thông báo.</li>{% endfor %}
+      </ul></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% include "_chart.html" %}
+<script>
+const att = {{ chart_att|tojson }};
+new Chart(document.getElementById('attChart'), {
+  type: 'bar',
+  data: { labels: att.labels, datasets: [
+    { label: 'Đăng ký', data: att.reg, backgroundColor: 'rgba(129,140,248,.35)', borderRadius: 6 },
+    { label: 'Có mặt', data: att.att, backgroundColor: '#22d3ee', borderRadius: 6 }] },
+  options: { plugins: { legend: { position: 'bottom' } }, scales: { x: { ticks: { callback: function(v){ const l=this.getLabelForValue(v); return l.length>18? l.slice(0,18)+'…': l; } } } } }
+});
+{% if chart_fund %}
+const fund = {{ chart_fund|tojson }};
+new Chart(document.getElementById('fundChart'), {
+  type: 'line',
+  data: { labels: fund.labels, datasets: [
+    { label: 'Thu', data: fund.inc, borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,.15)', fill: true, tension: .3 },
+    { label: 'Chi', data: fund.exp, borderColor: '#f472b6', backgroundColor: 'rgba(244,114,182,.15)', fill: true, tension: .3 }] },
+  options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { ticks: { callback: v => (v/1e6).toFixed(1) + 'tr' } } } }
+});
+{% else %}
+const dept = {{ chart_dept|tojson }};
+new Chart(document.getElementById('deptChart'), { type: 'doughnut',
+  data: { labels: dept.labels, datasets: [{ data: dept.data, backgroundColor: GALAXY }] },
+  options: { plugins: { legend: { position: 'bottom' } } } });
+{% endif %}
+</script>
+{% endblock %}

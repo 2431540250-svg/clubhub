@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Quét QR · {{ e.title }}{% endblock %}
+{% block heading %}Quét QR điểm danh{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">{{ e.title }}</h2>
+      <p class="text-muted small mb-3">Hướng camera vào vé QR của thành viên. Máy quét tự điểm danh, có tiếng "bíp" khi thành công.</p>
+      <div id="insecureWarn" class="alert alert-warning small d-none">
+        <b><i class="bi bi-camera-video-off"></i> Trình duyệt chặn camera</b> vì trang đang mở qua <code id="curHost"></code> (không phải HTTPS).
+        Bạn vẫn điểm danh được bằng các cách sau:
+        <ul class="mb-1 mt-1">
+          <li>Gõ <b>mã vé hoặc MSSV</b> vào ô bên dưới.</li>
+          <li>Bấm <b>"Scan an Image File"</b> trong khung quét rồi chụp hoặc chọn ảnh vé QR.</li>
+          <li>Mở trang này trên chính máy chạy server (<code>localhost</code>), hoặc dùng bản đã deploy có HTTPS.</li>
+        </ul>
+      </div>
+      <div id="reader"></div>
+      <form id="manualForm" class="input-group mt-3">
+        <input id="manualCode" class="form-control" placeholder="Hoặc nhập mã vé / MSSV rồi Enter">
+        <button class="btn btn-outline-primary">Điểm danh</button>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body text-center">
+      <div class="text-muted small">Đã check-in</div>
+      <div class="display-5 fw-bold text-success" id="attCount">{{ e.att_count }}</div>
+      <div class="text-muted small">trên {{ e.reg_count }} đăng ký</div>
+    </div></div>
+    <div id="lastResult" class="alert alert-light scan-result text-center">Chưa quét</div>
+    <div class="card"><div class="card-header">Lịch sử quét</div>
+      <ul class="list-group list-group-flush small" id="history"></ul></div>
+    <a href="{{ url_for('events.detail', event_id=e.id) }}" class="btn btn-light mt-3"><i class="bi bi-arrow-left"></i> Về sự kiện</a>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const API = {{ url_for('events.checkin_api', event_id=e.id)|tojson }};
+let lastCode = '', lastTime = 0;
+const beep = () => { try { const c = new AudioContext(), o = c.createOscillator(); o.connect(c.destination); o.frequency.value = 880; o.start(); o.stop(c.currentTime + .12); } catch (e) {} };
+
+async function checkin(code) {
+  const now = Date.now();
+  if (code === lastCode && now - lastTime < 3000) return;  // chống quét trùng liên tục
+  lastCode = code; lastTime = now;
+  const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+  const data = await res.json();
+  const box = document.getElementById('lastResult');
+  const cls = { ok: 'success', already: 'warning', error: 'danger' }[data.status];
+  box.className = `alert alert-${cls} scan-result text-center`;
+  box.innerHTML = data.name ? `<b>${data.name}</b> (${data.student_id})<br>${data.message}` : data.message;
+  if (data.attended !== undefined) document.getElementById('attCount').textContent = data.attended;
+  const li = document.createElement('li');
+  li.className = `list-group-item list-group-item-${cls}`;
+  li.textContent = `${new Date().toLocaleTimeString('vi-VN')} · ${data.name || code} · ${data.message}`;
+  document.getElementById('history').prepend(li);
+  if (data.status === 'ok') beep();
+}
+
+if (!window.isSecureContext) {
+  document.getElementById('insecureWarn').classList.remove('d-none');
+  document.getElementById('curHost').textContent = location.host;
+}
+const scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+scanner.render((text) => checkin(text.trim()), () => {});
+
+document.getElementById('manualForm').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const input = document.getElementById('manualCode');
+  if (input.value.trim()) { lastCode = ''; checkin(input.value.trim()); input.value = ''; }
+});
+</script>
+{% endblock %}

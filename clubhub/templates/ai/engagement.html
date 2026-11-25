@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Mức độ tương tác{% endblock %}
+{% block heading %}<i class="bi bi-stars text-primary"></i> Phát hiện thành viên ít tương tác{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card" style="box-shadow: inset 4px 0 0 #fb7185, 0 8px 30px rgba(0,0,0,.25)"><div class="card-body"><div class="small text-muted">Ít tương tác (&lt; 40)</div><div class="fs-3 fw-bold text-danger">{{ summary.low }}</div></div></div></div>
+  <div class="col-md-4"><div class="card" style="box-shadow: inset 4px 0 0 #fbbf24, 0 8px 30px rgba(0,0,0,.25)"><div class="card-body"><div class="small text-muted">Cần chú ý (40–59)</div><div class="fs-3 fw-bold text-warning">{{ summary.watch }}</div></div></div></div>
+  <div class="col-md-4"><div class="card" style="box-shadow: inset 4px 0 0 #34d399, 0 8px 30px rgba(0,0,0,.25)"><div class="card-body"><div class="small text-muted">Tích cực (≥ 60)</div><div class="fs-3 fw-bold text-success">{{ summary.ok }}</div></div></div></div>
+</div>
+<div class="card"><div class="card-body">
+  <form class="d-flex flex-wrap gap-2 mb-3">
+    <select name="days" class="form-select w-auto">{% for d in [30, 60, 90, 180] %}<option value="{{ d }}" {{ 'selected' if days == d }}>{{ d }} ngày gần nhất</option>{% endfor %}</select>
+    <select name="show" class="form-select w-auto"><option value="flagged" {{ 'selected' if show=='flagged' }}>Chỉ người cần chú ý</option><option value="all" {{ 'selected' if show=='all' }}>Tất cả</option></select>
+    <button class="btn btn-outline-primary">Phân tích</button>
+    <span class="small text-muted align-self-center ms-auto">Điểm = 50% tỷ lệ có mặt sự kiện + 25% tỷ lệ hoàn thành việc + 25% độ gần của hoạt động cuối.</span>
+  </form>
+  <div class="table-responsive"><table class="table table-stack">
+    <thead><tr><th>Thành viên</th><th>Điểm</th><th>Sự kiện</th><th>Việc</th><th>Dấu hiệu</th><th>Gợi ý xử lý</th><th></th></tr></thead><tbody>
+    {% for r in rows %}<tr>
+      <td><a href="{{ url_for('members.detail', member_id=r.id) }}" class="fw-semibold">{{ r.full_name }}</a><br><small class="text-muted">{{ r.department_name or '' }}</small></td>
+      <td style="min-width:100px"><b class="text-{{ {'low':'danger','watch':'warning','ok':'success'}[r.level] }}">{{ r.score }}</b>
+        <div class="score-bar"><div class="bg-{{ {'low':'danger','watch':'warning','ok':'success'}[r.level] }}" style="width:{{ r.score }}%"></div></div></td>
+      <td class="small">{{ r.attended }}/{{ r.eligible_events }}</td>
+      <td class="small">{{ r.done_tasks }}/{{ r.total_tasks }}{% if r.overdue_tasks %}<br><span class="text-danger">{{ r.overdue_tasks }} quá hạn</span>{% endif %}</td>
+      <td class="small">{{ r.reasons|join('; ') or '—' }}</td>
+      <td class="small">{{ r.suggestion }}</td>
+      <td>{% if r.level != 'ok' %}<button class="btn btn-sm btn-outline-primary text-nowrap" onclick='msg({{ r.id }}, {{ r.reasons|tojson }}, {{ r.full_name|tojson }})'><i class="bi bi-chat-heart"></i> Soạn tin</button>{% endif %}</td>
+    </tr>{% else %}<tr><td colspan="7" class="text-center text-muted">Không có thành viên cần chú ý 🎉</td></tr>{% endfor %}
+  </tbody></table></div>
+</div></div>
+
+<div class="modal fade" id="msgModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title">Tin nhắn hỏi thăm <span id="msgName"></span></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><textarea id="msgText" class="form-control" rows="6"></textarea><small class="text-muted" id="msgProvider"></small></div>
+  <div class="modal-footer"><button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('msgText').value)"><i class="bi bi-clipboard"></i> Sao chép</button></div>
+</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const modal = new bootstrap.Modal(document.getElementById('msgModal'));
+async function msg(id, reasons, name) {
+  document.getElementById('msgName').textContent = name;
+  document.getElementById('msgText').value = 'AI đang soạn...';
+  modal.show();
+  const res = await fetch(`{{ url_for('ai.engagement') }}/${id}/message`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reasons }) });
+  const data = await res.json();
+  document.getElementById('msgText').value = data.text;
+  document.getElementById('msgProvider').textContent = 'Nguồn: ' + data.provider + ' · Hãy đọc lại trước khi gửi.';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Thống kê sự kiện{% endblock %}
+{% block heading %}Thống kê tham gia sự kiện{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Sự kiện đã tổ chức</div><div class="fs-3 fw-bold">{{ rows|length }}</div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Tổng lượt có mặt / đăng ký</div><div class="fs-3 fw-bold">{{ total_att }} / {{ total_reg }}</div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Tỷ lệ có mặt trung bình</div><div class="fs-3 fw-bold text-primary">{{ (total_att * 100 / total_reg)|round|int if total_reg else 0 }}%</div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-8"><div class="card"><div class="card-header">Đăng ký vs có mặt</div><div class="card-body"><canvas id="c"></canvas></div>
+    <div class="table-responsive"><table class="table table-stack mb-0"><thead><tr><th>Sự kiện</th><th>Ngày</th><th>Đăng ký</th><th>Có mặt</th><th>Tỷ lệ</th></tr></thead><tbody>
+      {% for r in rows %}<tr><td><a href="{{ url_for('events.detail', event_id=r.id) }}">{{ r.title }}</a></td><td>{{ r.start_time|dt }}</td><td>{{ r.reg }}</td><td>{{ r.att }}</td>
+        <td>{{ (r.att * 100 / r.reg)|round|int if r.reg else 0 }}%</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+  <div class="col-lg-4"><div class="card"><div class="card-header">Top thành viên chăm chỉ</div>
+    <ol class="list-group list-group-flush list-group-numbered">
+      {% for t in top %}<li class="list-group-item d-flex"><span class="ms-2">{{ t.full_name }}</span><span class="badge text-bg-primary ms-auto">{{ t.att }}</span></li>{% endfor %}
+    </ol></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% include "_chart.html" %}
+<script>
+const rows = {{ rows|map(attribute='title')|list|tojson }}, reg = {{ rows|map(attribute='reg')|list|tojson }}, att = {{ rows|map(attribute='att')|list|tojson }};
+new Chart(document.getElementById('c'), { type: 'bar', data: { labels: rows, datasets: [
+  { label: 'Đăng ký', data: reg, backgroundColor: 'rgba(129,140,248,.35)', borderRadius: 6 }, { label: 'Có mặt', data: att, backgroundColor: '#22d3ee', borderRadius: 6 }] },
+  options: { plugins: { legend: { position: 'bottom' } } } });
+</script>
+{% endblock %}

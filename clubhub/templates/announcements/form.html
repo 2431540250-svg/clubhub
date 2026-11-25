@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Thông báo{% endblock %}
+{% block heading %}{{ 'Sửa thông báo' if a else 'Đăng thông báo' }}{% endblock %}
+{% block content %}
+{% set f = request.form if request.method == 'POST' else a %}
+<div class="card" style="max-width:820px"><div class="card-body">
+<form method="post" class="row g-3" novalidate>
+  <div class="col-12"><label class="form-label">Tiêu đề *</label><input name="title" class="form-control{{ invalid('title') }}" required value="{{ f.title if f else '' }}">{{ feedback('title') }}</div>
+  <div class="col-12"><label class="form-label">Nội dung *</label><textarea name="content" rows="8" class="form-control{{ invalid('content') }}" required>{{ f.content if f else '' }}</textarea>{{ feedback('content') }}</div>
+  <div class="col-md-6"><label class="form-label">Gửi tới</label>
+    <select name="department_id" class="form-select">
+      {% if g.user.role_code != 'head' %}<option value="">Toàn CLB</option>{% endif %}
+      {% for d in departments %}{% if g.user.role_code != 'head' or d.id == g.user.department_id %}
+      <option value="{{ d.id }}" {{ 'selected' if f and f.department_id|string == d.id|string }}>{{ d.name }}</option>{% endif %}{% endfor %}
+    </select></div>
+  {% if g.user.role_code in ('admin', 'president') %}
+  <div class="col-md-6 d-flex align-items-end"><div class="form-check">
+    <input class="form-check-input" type="checkbox" name="is_pinned" id="pin" {{ 'checked' if f and f.is_pinned }}>
+    <label class="form-check-label" for="pin">Ghim lên đầu</label></div></div>
+  {% endif %}
+  <div class="col-12"><button class="btn btn-primary">Đăng</button> <a href="{{ url_for('announcements.list_all') }}" class="btn btn-light">Hủy</a></div>
+</form>
+</div></div>
+{% endblock %}

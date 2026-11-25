@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Đăng nhập{% endblock %}
+{% block public %}
+<div class="login-page">
+  <section class="login-hero">
+    <span class="school-tag"><i class="bi bi-airplane-engines"></i> {{ SCHOOL_NAME }}</span>
+    <h1>Vận hành câu lạc bộ<br><span>như một chuyến bay</span></h1>
+    <p>{{ CLUB_NAME }} · Quản lý thành viên, sự kiện, quỹ và công việc trên một nền tảng, có trợ lý AI hỗ trợ.</p>
+    <div class="orbit-wrap" aria-hidden="true">
+      <div class="planet"></div>
+      <div class="orbit"><i class="bi bi-airplane-fill plane"></i></div>
+      <div class="orbit o2"><i class="bi bi-rocket-takeoff-fill plane"></i></div>
+    </div>
+  </section>
+  <section class="login-side">
+    <div class="card login-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-4">
+          <span class="brand-logo me-3" style="width:52px;height:52px;font-size:1.5rem">{% if HAS_LOGO %}<img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">{% else %}<i class="bi bi-airplane-fill"></i>{% endif %}</span>
+          <div><h2 class="h4 fw-bold mb-0">ClubHub</h2><small class="text-muted">Đăng nhập để cất cánh</small></div>
+        </div>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Email hoặc MSSV</label>
+            <input name="login" class="form-control form-control-lg" required autofocus value="{{ request.form.login }}" placeholder="vd: 2251010001 hoặc ten@club.vn">
+          </div>
+          <div class="mb-4">
+            <div class="d-flex"><label class="form-label">Mật khẩu</label>
+              <a href="{{ url_for('auth.forgot_password') }}" class="ms-auto small">Quên mật khẩu?</a></div>
+            <input name="password" type="password" class="form-control form-control-lg" required placeholder="••••••">
+          </div>
+          <button class="btn btn-primary btn-lg w-100"><i class="bi bi-send-fill me-1"></i> Đăng nhập</button>
+        </form>
+        <details class="mt-4 small text-muted">
+          <summary>Tài khoản demo (mật khẩu 123456)</summary>
+          <table class="table table-sm mt-2 mb-0">
+            <tr><td>admin@club.vn</td><td>Quản trị</td></tr>
+            <tr><td>chunhiem@club.vn</td><td>Chủ nhiệm</td></tr>
+            <tr><td>truongban@club.vn</td><td>Trưởng ban</td></tr>
+            <tr><td>thuquy@club.vn</td><td>Thủ quỹ</td></tr>
+            <tr><td>thanhvien@club.vn</td><td>Thành viên</td></tr>
+          </table>
+        </details>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

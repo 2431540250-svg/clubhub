@@ -1,0 +1,13 @@
+{% if pager and pager.pages > 1 %}
+<nav class="d-flex flex-wrap align-items-center gap-2 mt-3" aria-label="Phân trang">
+  <small class="text-muted me-auto">Hiển thị {{ pager.offset + 1 }}–{{ [pager.offset + pager.per_page, pager.total]|min }} / {{ pager.total }}</small>
+  <ul class="pagination pagination-sm mb-0">
+    <li class="page-item {{ 'disabled' if pager.page == 1 }}"><a class="page-link" href="{{ pager.url(pager.page - 1) }}">‹</a></li>
+    {% for p in pager.window() %}
+      {% if p %}<li class="page-item {{ 'active' if p == pager.page }}"><a class="page-link" href="{{ pager.url(p) }}">{{ p }}</a></li>
+      {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if pager.page == pager.pages }}"><a class="page-link" href="{{ pager.url(pager.page + 1) }}">›</a></li>
+  </ul>
+</nav>
+{% endif %}

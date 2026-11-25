@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Ma trận quyền{% endblock %}
+{% block heading %}Ma trận phân quyền (RBAC){% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <p class="text-muted">Mỗi thành viên có đúng 1 vai trò; mỗi vai trò có một tập quyền. Menu và nút bấm được ẩn/hiện theo quyền,
+      đồng thời mỗi route được bảo vệ bằng <code>@permission_required</code>. Trưởng ban chỉ thao tác trong phạm vi ban của mình.
+      Vai trò của bạn: <strong>{{ g.user.role_name }}</strong>.</p>
+    <div class="table-responsive">
+      <table class="table table-bordered text-center align-middle">
+        <thead><tr><th class="text-start">Quyền</th>{% for r in roles %}<th class="{{ 'table-primary' if r == g.user.role_code }}">{{ ROLE_LABELS[r] }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for code, desc in PERMISSIONS.items() %}
+          <tr><td class="text-start">{{ desc }}<br><code class="small">{{ code }}</code></td>
+            {% for r in roles %}<td class="{{ 'table-primary' if r == g.user.role_code }}">
+              {% if code in ROLE_PERMISSIONS[r] %}<i class="bi bi-check-circle-fill perm-yes"></i>{% else %}<i class="bi bi-dash perm-no"></i>{% endif %}</td>{% endfor %}</tr>
+          {% endfor %}
+          <tr class="table-light"><td class="text-start">Xem sự kiện, đăng ký, nhận vé QR, tự check-in, xem việc của mình, xem thông báo</td>
+            {% for r in roles %}<td><i class="bi bi-check-circle-fill perm-yes"></i></td>{% endfor %}</tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

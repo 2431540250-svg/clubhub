@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_btn with context %}
+{% block title %}Sổ thu chi{% endblock %}
+{% block heading %}Sổ quỹ thu chi{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Tồn quỹ hiện tại</div><div class="fs-3 fw-bold text-primary">{{ balance|money }}</div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Tổng thu (theo bộ lọc)</div><div class="fs-3 fw-bold text-success">+{{ income|money }}</div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Tổng chi (theo bộ lọc)</div><div class="fs-3 fw-bold text-danger">−{{ expense|money }}</div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card"><div class="card-body">
+      <form class="row g-2 mb-3">
+        <div class="col-md-3"><select name="month" class="form-select"><option value="">Mọi tháng</option>
+          {% for m in months %}<option value="{{ m }}" {{ 'selected' if filters.month == m }}>Tháng {{ m[5:] }}/{{ m[:4] }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><select name="type" class="form-select"><option value="">Thu & chi</option>
+          <option value="income" {{ 'selected' if filters.type=='income' }}>Thu</option><option value="expense" {{ 'selected' if filters.type=='expense' }}>Chi</option></select></div>
+        <div class="col-md-3"><select name="category" class="form-select"><option value="">Mọi danh mục</option>
+          {% for c in categories %}<option {{ 'selected' if filters.category == c }}>{{ c }}</option>{% endfor %}</select></div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100">Lọc</button></div>
+        <div class="col-md-2"><a href="{{ url_for('finance.export_csv', **filters) }}" class="btn btn-outline-secondary w-100"><i class="bi bi-download"></i> CSV</a></div>
+      </form>
+      {% if can('fund.manage') %}<a href="{{ url_for('finance.create') }}" class="btn btn-primary mb-3"><i class="bi bi-plus-lg"></i> Ghi thu / chi</a>{% endif %}
+      <div class="table-responsive"><table class="table table-stack table-hover">
+        <thead><tr><th>Ngày</th><th>Danh mục</th><th>Diễn giải</th><th class="text-end">Số tiền</th><th></th></tr></thead><tbody>
+        {% for r in rows %}<tr>
+          <td class="text-nowrap">{{ r.txn_date|dt }}</td>
+          <td><span class="badge {{ 'text-bg-success' if r.type=='income' else 'text-bg-danger' }}">{{ 'Thu' if r.type=='income' else 'Chi' }}</span> {{ r.category }}</td>
+          <td class="small">{{ r.description or '' }}{% if r.event_title %}<br><span class="text-muted"><i class="bi bi-calendar-event"></i> {{ r.event_title }}</span>{% endif %}</td>
+          <td class="text-end fw-semibold {{ 'text-success' if r.type=='income' else 'text-danger' }}">{{ '+' if r.type=='income' else '−' }}{{ r.amount|money }}</td>
+          <td class="text-end text-nowrap">{% if can('fund.manage') %}<a href="{{ url_for('finance.edit', txn_id=r.id) }}" class="btn btn-sm btn-light"><i class="bi bi-pencil"></i></a>
+            {{ delete_btn(url_for('finance.delete', txn_id=r.id), label='', confirm='Xóa giao dịch này?') }}{% endif %}</td></tr>
+        {% else %}<tr><td colspan="5" class="text-center text-muted">Không có giao dịch.</td></tr>{% endfor %}
+      </tbody></table></div>
+    </div></div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card"><div class="card-header">Cơ cấu chi</div><div class="card-body">
+      {% if by_cat %}<canvas id="catChart"></canvas>{% else %}<p class="text-muted">Chưa có khoản chi.</p>{% endif %}</div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% include "_chart.html" %}
+<script>
+{% if by_cat %}
+new Chart(document.getElementById('catChart'), { type: 'doughnut', data: {
+  labels: {{ by_cat|map(attribute='category')|list|tojson }},
+  datasets: [{ data: {{ by_cat|map(attribute='total')|list|tojson }}, backgroundColor: GALAXY }] },
+  options: { plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => c.label + ': ' + c.raw.toLocaleString('vi-VN') + ' ₫' } } } } });
+{% endif %}
+</script>
+{% endblock %}

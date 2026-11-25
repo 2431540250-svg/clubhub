@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Báo cáo tháng {{ r.label }}{% endblock %}
+{% block heading %}Báo cáo tháng{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <form class="d-flex gap-2"><input type="month" name="month" value="{{ r.ym }}" class="form-control"><button class="btn btn-outline-primary">Xem</button></form>
+  <div class="ms-auto d-flex gap-2">
+    <a href="{{ url_for('reports.export_xlsx', month=r.ym) }}" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
+    <a href="{{ url_for('reports.export_pdf_view', month=r.ym) }}" class="btn btn-danger"><i class="bi bi-file-earmark-pdf"></i> Xuất PDF</a>
+  </div>
+</div>
+<div class="card mb-3"><div class="card-body">
+  <h2 class="h4 fw-bold text-primary mb-0">BÁO CÁO HOẠT ĐỘNG THÁNG {{ r.label }}</h2>
+  <div class="text-muted small">{{ CLUB_NAME }} · lập lúc {{ r.generated_at }}</div>
+</div></div>
+<div class="row g-3 mb-3">
+  {% for label, value, color in [('Thành viên', r.members_total, 'primary'), ('Thành viên mới', r.members_new, 'info'),
+       ('Sự kiện', r.events|length, 'success'), ('Có mặt / đăng ký', r.event_att ~ ' / ' ~ r.event_reg, 'success'),
+       ('Việc hoàn thành', r.tasks_done, 'warning'), ('Việc quá hạn', r.tasks_overdue, 'danger')] %}
+  <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body"><div class="small text-muted">{{ label }}</div><div class="fs-4 fw-bold text-{{ color }}">{{ value }}</div></div></div></div>
+  {% endfor %}
+</div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">Tài chính</div><div class="card-body">
+      <table class="table table-sm mb-3"><tr><td>Tồn đầu kỳ</td><td class="text-end">{{ r.opening|money }}</td></tr>
+        <tr><td>Tổng thu</td><td class="text-end text-success">+{{ r.income|money }}</td></tr>
+        <tr><td>Tổng chi</td><td class="text-end text-danger">−{{ r.expense|money }}</td></tr>
+        <tr class="fw-bold"><td>Tồn cuối kỳ</td><td class="text-end">{{ r.closing|money }}</td></tr></table>
+      <h3 class="h6">Theo danh mục</h3>
+      <table class="table table-stack table-sm mb-0">{% for c in r.by_cat %}<tr><td><span class="badge {{ 'text-bg-success' if c.type=='income' else 'text-bg-danger' }}">{{ 'Thu' if c.type=='income' else 'Chi' }}</span> {{ c.category }}</td><td class="text-end">{{ c.total|money }}</td></tr>
+        {% else %}<tr><td class="text-muted">Không có giao dịch.</td></tr>{% endfor %}</table>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">Sự kiện</div><div class="table-responsive"><table class="table table-stack table-sm mb-0">
+      <thead><tr><th>Sự kiện</th><th>Ngày</th><th>ĐK</th><th>Có mặt</th><th>Tỷ lệ</th></tr></thead><tbody>
+      {% for e in r.events %}<tr><td>{{ e.title }}</td><td>{{ e.start_time|dt }}</td><td>{{ e.reg }}</td><td>{{ e.att }}</td><td>{{ e.rate }}%</td></tr>
+      {% else %}<tr><td colspan="5" class="text-muted">Không có sự kiện.</td></tr>{% endfor %}</tbody></table></div></div>
+    <div class="card"><div class="card-header">Tiến độ công việc theo ban</div><div class="card-body">
+      {% for d in r.task_dept %}{% set pct = ((d.done or 0) * 100 / d.total)|round|int if d.total else 0 %}
+      <div class="mb-2"><div class="d-flex small"><span>{{ d.name }}</span><span class="ms-auto">{{ d.done or 0 }}/{{ d.total }} ({{ pct }}%)</span></div>
+        <div class="progress" style="height:8px"><div class="progress-bar" style="width:{{ pct }}%"></div></div></div>
+      {% endfor %}
+      {% if r.top %}<hr><div class="small"><b>Thành viên tích cực:</b> {% for t in r.top %}{{ t.full_name }} ({{ t.att }}){{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}
